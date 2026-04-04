@@ -30,9 +30,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourname/raglib"
-Repository = "https://github.com/yourname/raglib"
-"Bug Tracker" = "https://github.com/yourname/raglib/issues"
+Homepage = "https://github.com/himanshau/raglib"
+Repository = "https://github.com/himanshau/raglib"
+"Bug Tracker" = "https://github.com/himanshau/raglib/issues"
 
 [project.optional-dependencies]
 tavily = ["tavily-python>=0.2.0"]
