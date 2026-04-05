@@ -3,8 +3,8 @@ requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "raglib"
-version = "0.1.2"
+name = "raglib-py"
+version = "0.1.3"
 description = "A modular, production-grade Retrieval-Augmented Generation library"
 readme = "README.md"
 license = { file = "LICENSE" }

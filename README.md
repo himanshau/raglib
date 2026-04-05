@@ -6,11 +6,11 @@ raglib is a modular, production-grade Python library for Retrieval-Augmented Gen
 
 Install from PyPI:
 
-pip install raglib
+pip install raglib-py
 
 Install with optional extras:
 
-pip install raglib[tavily,serpapi,faiss]
+pip install raglib-py[tavily,serpapi,faiss]
 
 ## Quick import check
 
