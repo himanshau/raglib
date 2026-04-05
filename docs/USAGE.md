@@ -22,7 +22,9 @@ Install core package:
 pip install raglib-py
 ```
 
-Install optional extras when needed:
+The core install now includes the full runtime dependency set used by default RAG flows.
+
+Optional extras remain available when you want explicit feature grouping:
 
 ```bash
 pip install raglib-py[tavily]

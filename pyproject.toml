@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "raglib-py"
-version = "0.1.5"
+version = "0.1.6"
 description = "A modular, production-grade Retrieval-Augmented Generation library"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -13,7 +13,19 @@ authors = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-  "duckduckgo-search>=3.9"
+  "duckduckgo-search>=3.9",
+  "chromadb>=0.5.0",
+  "langchain-core>=0.2.0",
+  "langchain-openai>=0.1.0",
+  "langchain-anthropic>=0.1.0",
+  "langchain-groq>=0.1.0",
+  "langchain-google-genai>=1.0.0",
+  "langchain-ollama>=0.1.0",
+  "langchain-huggingface>=0.0.3",
+  "sentence-transformers>=2.6.0",
+  "PyMuPDF>=1.23.0",
+  "python-docx>=1.0.0",
+  "python-pptx>=0.6.21"
 ]
 keywords = ["rag", "llm", "retrieval", "ai", "nlp", "vector-search"]
 classifiers = [

@@ -40,7 +40,9 @@ Install core package:
 pip install raglib-py
 ```
 
-Common optional extras:
+This installs the full runtime dependency set used by core chat, embedding, vector DB, and document loader paths.
+
+Optional extras are still available for explicit feature grouping:
 
 ```bash
 # Local Ollama chat/embedding support

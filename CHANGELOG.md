@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6 - 2026-04-05
+
+- Updated default package dependencies so `pip install raglib-py` includes the full runtime stack used by core code paths
+- Fixed common first-run missing module issue for Ollama chat/embedding by bundling `langchain-ollama` in base install
+- Kept optional extras for users who prefer explicit feature grouping
+
 ## 0.1.5 - 2026-04-05
 
 - Added explicit per-provider key options in the RAG facade: chat_api_key, embedding_api_key, vision_api_key
