@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5 - 2026-04-05
+
+- Added explicit per-provider key options in the RAG facade: chat_api_key, embedding_api_key, vision_api_key
+- Added endpoint options in the RAG facade: chat_base_url and vision_base_url
+- Updated README and usage docs with clear API key ownership guidance and constructor examples
+
 ## 0.1.4 - 2026-04-05
 
 - Expanded README into a full PyPI-first user guide with complete setup and usage coverage
