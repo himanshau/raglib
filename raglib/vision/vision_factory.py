@@ -22,6 +22,7 @@ class VisionFactory:
         provider: Optional[str],
         api_key: Optional[str],
         model_name: Optional[str] = None,
+        base_url: Optional[str] = None,
     ) -> BaseVisionClient:
         """Return the right vision client for the configured provider."""
 
@@ -32,7 +33,7 @@ class VisionFactory:
             return MockVisionClient()
         if provider_name == "openai":
             logger.info("VisionFactory selected provider='openai'")
-            return OpenAIVisionClient(api_key=api_key, model_name=model_name)
+            return OpenAIVisionClient(api_key=api_key, model_name=model_name, base_url=base_url)
         if provider_name == "anthropic":
             logger.info("VisionFactory selected provider='anthropic'")
             return AnthropicVisionClient(api_key=api_key, model_name=model_name)

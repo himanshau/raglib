@@ -109,6 +109,7 @@ class LangChainAdapter(BaseLLMClient):
             lc_model = ChatOpenAI(
                 model=resolved_model,
                 api_key=api_key,
+                base_url=base_url,
                 temperature=temperature,
             )
         elif normalized_provider == "anthropic":

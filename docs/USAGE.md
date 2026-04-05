@@ -64,8 +64,11 @@ from raglib import RAG
 
 rag = RAG(
     source="my_documents/",
-    rag_type="corrective",   # defaults to "naive"
-    llm_key=None,             # falls back to MockLLMClient
+    rag_type="corrective",    # this is also the default
+    chat_api_key=None,         # use your own key for cloud chat providers
+    embedding_api_key=None,    # optional separate key for embeddings
+    vision_api_key=None,       # optional separate key for vision
+    llm_key=None,              # shared fallback key across providers
     top_k=5,
 )
 

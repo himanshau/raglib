@@ -146,15 +146,20 @@ class RAG:
         embedding_llm: Optional[str] = None,
         vision_llm: Optional[str] = None,
         llm_key: Optional[str] = None,
+        chat_api_key: Optional[str] = None,
+        embedding_api_key: Optional[str] = None,
+        vision_api_key: Optional[str] = None,
         rag_type: str = DEFAULT_RAG_TYPE,
         top_k: int = DEFAULT_TOP_K,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
         chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
         output_dir: Optional[str] = None,
         chat_model: Optional[str] = None,
+        chat_base_url: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_base_url: Optional[str] = None,
         vision_model: Optional[str] = None,
+        vision_base_url: Optional[str] = None,
         vector_db: Optional[Union[str, BaseVectorStore]] = None,
         vector_db_kwargs: Optional[Dict[str, Any]] = None,
         **rag_type_kwargs: Any,
@@ -167,18 +172,23 @@ class RAG:
         self._rag_type = self._normalize_rag_type(rag_type)
         self._output_dir = output_dir
 
-        chat_input: Optional[Union[str, BaseLLMClient]] = chat_llm if chat_llm is not None else llm_key
+        explicit_chat_key = chat_api_key
+        shared_key = llm_key
+        effective_chat_key = explicit_chat_key if explicit_chat_key is not None else shared_key
+
+        chat_input: Optional[Union[str, BaseLLMClient]] = chat_llm if chat_llm is not None else effective_chat_key
         chat_provider_hint: Optional[str] = None
-        if isinstance(chat_llm, str) and llm_key:
+        if isinstance(chat_llm, str) and effective_chat_key:
             normalized_chat_llm = chat_llm.strip().lower()
             if normalized_chat_llm in SUPPORTED_CHAT_PROVIDERS:
                 chat_provider_hint = normalized_chat_llm
-                chat_input = llm_key
+                chat_input = effective_chat_key
 
         self._llm = LLMProviderDetector.detect(
             value=chat_input,
             provider_hint=chat_provider_hint,
             model_name=chat_model,
+            base_url=chat_base_url,
         )
         inferred_chat_provider = LLMProviderDetector.infer_provider(
             value=chat_input,
@@ -187,16 +197,21 @@ class RAG:
 
         self._embedding = self._resolve_embedding(
             embedding_llm=embedding_llm,
-            llm_key=llm_key,
+            llm_key=shared_key,
+            chat_api_key=explicit_chat_key,
+            embedding_api_key=embedding_api_key,
             inferred_chat_provider=inferred_chat_provider,
             model_name=embedding_model,
             base_url=embedding_base_url,
         )
         self._vision = self._resolve_vision(
             vision_llm=vision_llm,
-            llm_key=llm_key,
+            llm_key=shared_key,
+            chat_api_key=explicit_chat_key,
+            vision_api_key=vision_api_key,
             inferred_chat_provider=inferred_chat_provider,
             model_name=vision_model,
+            base_url=vision_base_url,
         )
 
         if isinstance(vector_db, str):
@@ -293,6 +308,8 @@ class RAG:
         self,
         embedding_llm: Optional[str],
         llm_key: Optional[str],
+        chat_api_key: Optional[str],
+        embedding_api_key: Optional[str],
         inferred_chat_provider: Optional[str],
         model_name: Optional[str],
         base_url: Optional[str],
@@ -313,7 +330,10 @@ class RAG:
                 f"Supported: {sorted(SUPPORTED_EMBEDDING_PROVIDERS)}"
             )
 
-        api_key = llm_key if provider in {"openai", "google"} else None
+        api_key = None
+        if provider in {"openai", "google"}:
+            api_key = embedding_api_key or llm_key or chat_api_key
+
         embedding = EmbeddingFactory.build(
             provider=provider,
             api_key=api_key,
@@ -327,13 +347,18 @@ class RAG:
         self,
         vision_llm: Optional[str],
         llm_key: Optional[str],
+        chat_api_key: Optional[str],
+        vision_api_key: Optional[str],
         inferred_chat_provider: Optional[str],
         model_name: Optional[str],
+        base_url: Optional[str],
     ) -> BaseVisionClient:
         """Resolve vision provider and build vision model instance."""
 
+        effective_key = vision_api_key or llm_key or chat_api_key
+
         if vision_llm is None:
-            if inferred_chat_provider in {"openai", "anthropic", "google"} and llm_key:
+            if inferred_chat_provider in {"openai", "anthropic", "google"} and effective_key:
                 provider = inferred_chat_provider
             else:
                 provider = "mock"
@@ -346,8 +371,13 @@ class RAG:
                 f"Supported: {sorted(SUPPORTED_VISION_PROVIDERS)}"
             )
 
-        api_key = llm_key if provider in {"openai", "anthropic", "google"} else None
-        vision_client = VisionFactory.build(provider=provider, api_key=api_key, model_name=model_name)
+        api_key = effective_key if provider in {"openai", "anthropic", "google"} else None
+        vision_client = VisionFactory.build(
+            provider=provider,
+            api_key=api_key,
+            model_name=model_name,
+            base_url=base_url,
+        )
         logger.info("Vision model resolved provider=%s", provider)
         return vision_client
 

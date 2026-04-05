@@ -9,6 +9,20 @@ Important package note:
 - PyPI package name: raglib-py
 - Python import name: raglib
 
+## Current Support Counts
+
+- Implemented RAG strategies: 12
+- Built-in chat LLM providers: 5
+- Custom chat model support: yes (BaseLLMClient or LangChain-style invoke model)
+
+The 5 built-in chat LLM providers are:
+
+- openai
+- anthropic
+- groq
+- google
+- ollama
+
 ## What You Can Do
 
 - Load documents from files, folders, URLs, or raw text
@@ -95,7 +109,7 @@ from raglib import RAG
 rag = RAG(
 	source="Service test content.",
 	chat_llm="groq",
-	llm_key="YOUR_GROQ_API_KEY",
+	chat_api_key="YOUR_GROQ_API_KEY",
 	chat_model="qwen/qwen3-32b",
 	embedding_llm="ollama",
 	embedding_model="nomic-embed-text:latest",
@@ -132,17 +146,74 @@ RAG(
 	embedding_llm=None,
 	vision_llm=None,
 	llm_key=None,
+	chat_api_key=None,
+	embedding_api_key=None,
+	vision_api_key=None,
 	rag_type="corrective",
 	top_k=5,
 	chunk_size=400,
 	chunk_overlap=50,
 	output_dir=None,
 	chat_model=None,
+	chat_base_url=None,
 	embedding_model=None,
 	embedding_base_url=None,
 	vision_model=None,
+	vision_base_url=None,
 	vector_db=None,
 	vector_db_kwargs=None,
+)
+```
+
+## API Keys And Endpoints (Important)
+
+raglib never provides API keys. You must use your own provider credentials.
+
+Use these fields in `RAG(...)`:
+
+- `chat_api_key`: key for `chat_llm` provider
+- `embedding_api_key`: key for `embedding_llm` provider
+- `vision_api_key`: key for `vision_llm` provider
+- `llm_key`: one shared fallback key when you do not want to pass separate keys
+
+Endpoint fields:
+
+- `chat_base_url`: custom OpenAI-compatible chat endpoint
+- `embedding_base_url`: custom Ollama embedding endpoint
+- `vision_base_url`: custom OpenAI-compatible vision endpoint
+
+Provider key mapping:
+
+- `chat_llm="openai" | "anthropic" | "groq" | "google"` needs a chat key
+- `embedding_llm="openai" | "google"` needs an embedding key
+- `vision_llm="openai" | "anthropic" | "google"` needs a vision key
+- `ollama`, `mock`, and local `huggingface` modes do not require cloud API keys
+
+Example with separate keys:
+
+```python
+from raglib import RAG
+
+rag = RAG(
+	source="docs/",
+	chat_llm="openai",
+	chat_api_key="YOUR_OPENAI_CHAT_KEY",
+	embedding_llm="google",
+	embedding_api_key="YOUR_GOOGLE_KEY",
+	vision_llm="anthropic",
+	vision_api_key="YOUR_ANTHROPIC_KEY",
+)
+```
+
+Example with one shared key:
+
+```python
+rag = RAG(
+	source="docs/",
+	chat_llm="openai",
+	embedding_llm="openai",
+	vision_llm="openai",
+	llm_key="YOUR_OPENAI_KEY",
 )
 ```
 
@@ -192,7 +263,7 @@ When to use what:
 
 ## Provider Support
 
-Chat providers:
+Chat providers (5 built-in + custom adapter support):
 
 - openai
 - anthropic

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class OpenAIVisionClient(BaseVisionClient):
     """Use OpenAI vision models to extract text from page images."""
 
-    def __init__(self, api_key: Optional[str], model_name: Optional[str] = None):
+    def __init__(self, api_key: Optional[str], model_name: Optional[str] = None, base_url: Optional[str] = None):
         """Initialize an OpenAI vision-capable chat model through LangChain."""
 
         try:
@@ -27,6 +27,7 @@ class OpenAIVisionClient(BaseVisionClient):
         self._model = ChatOpenAI(
             model=resolved_model,
             api_key=api_key,
+            base_url=base_url,
             max_tokens=4096,
             temperature=0.0,
         )
