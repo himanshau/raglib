@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7 - 2026-04-05
+
+- Reworked CorrectiveRAG into a faithful three-path CRAG flow: CORRECT, AMBIGUOUS, and INCORRECT routing
+- Added LLM-based retrieval evaluator and knowledge-refinement strip filtering pipeline
+- Added CRAG web-search branch with query rewriting and context merge policy (k_in / k_ex)
+- Added robust fallback behavior when optional LLM/web components are not configured
+
 ## 0.1.6 - 2026-04-05
 
 - Updated default package dependencies so `pip install raglib-py` includes the full runtime stack used by core code paths
