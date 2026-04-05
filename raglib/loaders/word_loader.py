@@ -21,7 +21,7 @@ class WordLoader:
             from docx import Document as DocxDocument  # type: ignore[import-not-found]
         except ImportError as exc:
             raise ImportError(
-                "Word loading requires python-docx. Install with: pip install raglib[docx]"
+                "Word loading requires python-docx. Install with: pip install raglib-py[docx]"
             ) from exc
 
         docx_document = DocxDocument(path)

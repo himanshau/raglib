@@ -19,27 +19,27 @@ If you want to start quickly with no API keys and no external services, use `Moc
 Install core package:
 
 ```bash
-pip install raglib
+pip install raglib-py
 ```
 
 Install optional extras when needed:
 
 ```bash
-pip install raglib[tavily]
-pip install raglib[serpapi]
-pip install raglib[faiss]
+pip install raglib-py[tavily]
+pip install raglib-py[serpapi]
+pip install raglib-py[faiss]
 ```
 
 Install file format extras for automatic source loading:
 
 ```bash
-pip install raglib[pdf,docx,pptx]
+pip install raglib-py[pdf,docx,pptx]
 ```
 
 Install OCR extras for scanned PDFs:
 
 ```bash
-pip install raglib[ocr]
+pip install raglib-py[ocr]
 ```
 
 ## Simple entry-point API (recommended)

@@ -21,7 +21,7 @@ class PowerPointLoader:
             from pptx import Presentation  # type: ignore[import-not-found]
         except ImportError as exc:
             raise ImportError(
-                "PowerPoint loading requires python-pptx. Install with: pip install raglib[pptx]"
+                "PowerPoint loading requires python-pptx. Install with: pip install raglib-py[pptx]"
             ) from exc
 
         presentation = Presentation(path)

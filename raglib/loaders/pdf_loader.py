@@ -27,7 +27,7 @@ class PDFLoader:
         try:
             import fitz  # type: ignore[import-not-found]
         except ImportError as exc:
-            raise ImportError("PDF loading requires PyMuPDF. Install with: pip install raglib[pdf]") from exc
+            raise ImportError("PDF loading requires PyMuPDF. Install with: pip install raglib-py[pdf]") from exc
 
         documents: List[Document] = []
         base_hash = abs(hash(os.path.abspath(path)))

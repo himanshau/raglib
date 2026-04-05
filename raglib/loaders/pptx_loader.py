@@ -21,7 +21,7 @@ class PPTXLoader:
             from pptx import Presentation
         except ImportError as exc:
             raise ImportError(
-                "PPTX loading requires python-pptx. Install with: pip install raglib[pptx]"
+                "PPTX loading requires python-pptx. Install with: pip install raglib-py[pptx]"
             ) from exc
 
         presentation = Presentation(path)

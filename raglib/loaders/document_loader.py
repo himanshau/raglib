@@ -81,13 +81,15 @@ class DocumentLoader:
             return documents
 
         logger.info("DocumentLoader treating source as raw text input")
+        raw_document = Document(
+            f"raw-{abs(hash(normalized))}",
+            normalized,
+            {"loader": "raw_text"},
+            0.0,
+            "text",
+        )
         return [
-            Document(
-                id=f"raw-{abs(hash(normalized))}",
-                content=normalized,
-                metadata={"loader": "raw_text"},
-                source="text",
-            )
+            raw_document,
         ]
 
     def _load_folder(self, folder_path: str) -> List[Document]:

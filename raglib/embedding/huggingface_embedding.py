@@ -22,7 +22,7 @@ class HuggingFaceEmbedding(BaseEmbedding):
         except ImportError as exc:
             raise ImportError(
                 "Free local embeddings require sentence-transformers. "
-                "Install with: pip install raglib[free-embed]"
+                "Install with: pip install raglib-py[free-embed]"
             ) from exc
 
         resolved_model = model_name or PROVIDER_DEFAULT_EMBEDDING_MODEL["huggingface"]
