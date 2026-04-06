@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.10 - 2026-04-06
+
+- Added additional interactive chat kill-switch commands: `bye` and `stop`
+- Updated interactive session banner/help text to show all exit commands
+- Updated README and usage docs so users can clearly see how to stop continuous chat sessions
+
 ## 0.1.9 - 2026-04-06
 
 - Clarified chat continuity behavior in README for PyPI users (default stateless turn handling vs memory-enabled multi-turn context)
