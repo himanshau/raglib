@@ -15,6 +15,13 @@ Important naming:
 - Internet web providers: 8
 - Offline local web provider: 1
 
+## Web Provider Count In The Library
+
+- Total web providers: 9
+- Free default: duckduckgo
+- Auth-required: tavily, serpapi, brave, bing, google_cse, exa, searxng
+- Offline/local: local
+
 ## Installation
 
 ```bash

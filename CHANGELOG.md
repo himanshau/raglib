@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.8 - 2026-04-06
 
 - Added first-class web search integration in `RAG(...)` with new inputs:
 	- `web_search_provider`
@@ -15,6 +15,8 @@
 - Integrated `langchain_community` DuckDuckGo tools (`DuckDuckGoSearchRun` with validated output) for default web search
 - Upgraded `WebRetriever` into a plug-and-play provider orchestrator with provider-name factory and automatic DuckDuckGo fallback
 - Updated `WebRetriever` to fail safely by default and return empty results when web provider calls fail
+- Updated `raglib/main.py` demo wiring to match latest orchestrator constructor signatures
+- Added explicit web-provider count summary to README for PyPI package page clarity
 - Updated README and usage docs with production "3-key" input patterns and provider/key requirements
 
 ## 0.1.7 - 2026-04-05

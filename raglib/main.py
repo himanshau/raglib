@@ -6,7 +6,6 @@ import logging
 from typing import List
 
 from raglib.components.context_reducer import ContextReducer
-from raglib.components.decision import DecisionEngine
 from raglib.components.deduplicator import Deduplicator
 from raglib.components.evaluator import Evaluator
 from raglib.components.generator import Generator
@@ -16,7 +15,6 @@ from raglib.components.planner import Planner
 from raglib.components.query_expander import QueryExpander
 from raglib.components.query_rewriter import QueryRewriter
 from raglib.components.refiner import Refiner
-from raglib.components.reflection import ReflectionModule
 from raglib.components.reranker import Reranker
 from raglib.components.retriever import Retriever
 from raglib.components.router_retriever import RouterRetriever
@@ -171,8 +169,6 @@ def run_demo() -> None:
     reranker = Reranker(top_k=3)
     evaluator = Evaluator(relevance_threshold=0.3)
     refiner = Refiner(llm_client=llm_client, max_retries=2)
-    decision_engine = DecisionEngine(llm_client=llm_client)
-    reflection_module = ReflectionModule(evaluator=evaluator)
     memory_module = MemoryModule(max_turns=10)
     planner = Planner(llm_client=llm_client)
     generator = Generator(llm_client=llm_client, max_context_tokens=350)
@@ -191,6 +187,12 @@ def run_demo() -> None:
     logger.info("Query rewriter sample: %s", query_rewriter.rewrite(SAMPLE_QUERY))
     logger.info("Query expander sample size: %d", len(query_expander.expand(SAMPLE_QUERY)))
     logger.info("Router route sample: %s", router_retriever.route(SAMPLE_QUERY))
+
+    print("\nWeb provider count in the library:")
+    print("Total web providers: 9")
+    print("Free default: duckduckgo")
+    print("Auth-required: tavily, serpapi, brave, bing, google_cse, exa, searxng")
+    print("Offline/local: local")
 
     naive_rag = NaiveRAG(retriever=retriever, generator=generator)
     naive_result = naive_rag.run(SAMPLE_QUERY)
@@ -218,12 +220,12 @@ def run_demo() -> None:
     print_result("CorrectiveRAG", corrective_result)
 
     self_rag = SelfRAG(
-        decision_engine=decision_engine,
         retriever=retriever,
-        web_retriever=web_retriever,
-        reflection_module=reflection_module,
-        refiner=refiner,
         generator=generator,
+        llm_client=llm_client,
+        evaluator=evaluator,
+        refiner=refiner,
+        query_rewriter=query_rewriter,
     )
     self_result = self_rag.run("What is retrieval augmented generation?")
     print_result("SelfRAG", self_result)
