@@ -70,12 +70,33 @@ rag = RAG(
     chat_api_key=None,         # use your own key for cloud chat providers
     embedding_api_key=None,    # optional separate key for embeddings
     vision_api_key=None,       # optional separate key for vision
+    web_search_provider="duckduckgo",  # default if omitted; local, duckduckgo, tavily, serpapi, brave, bing, google_cse, exa, searxng
+    web_search_api_key=None,   # required for authenticated web providers
+    web_search_cse_id=None,    # required for google_cse
     llm_key=None,              # shared fallback key across providers
     top_k=5,
 )
 
 result = rag.query("Summarize the key findings")
 print(result.answer)
+```
+
+Production pattern (chat + embedding + web key when web-enabled RAG is used):
+
+```python
+from raglib import RAG
+
+rag = RAG(
+    source="my_documents/",
+    rag_type="web",
+    chat_llm="openai",
+    chat_api_key="YOUR_CHAT_KEY",
+    embedding_llm="openai",
+    embedding_api_key="YOUR_EMBEDDING_KEY",
+    web_search_provider="tavily",
+    web_search_api_key="YOUR_WEB_SEARCH_KEY",
+    validate_web_search_api_key=True,
+)
 ```
 
 `source` accepts:
@@ -233,7 +254,7 @@ generator = Generator(llm_client=llm, max_context_tokens=300)
 ## 7. RAG Types and When to Use Them
 
 - `NaiveRAG`: simplest retrieve then generate flow
-- `AdvancedRAG`: retrieve -> rerank -> context reduce -> deduplicate -> generate
+- `AdvancedRAG`: retrieve -> rerank -> deduplicate -> context reduce -> generate
 - `CorrectiveRAG`: retrieve -> evaluate -> refine/retry -> generate
 - `SelfRAG`: decision-gated retrieval + reflection feedback
 - `AgenticRAG`: planner-driven sub-query retrieval + synthesis
@@ -335,7 +356,7 @@ from raglib.components.hybrid_retriever import HybridRetriever
 from raglib.providers import DuckDuckGoProvider, TavilyProvider, ProviderChain
 
 duckduckgo = DuckDuckGoProvider()
-tavily = TavilyProvider(api_key=None)  # will raise if used directly without key
+tavily = TavilyProvider(api_key="YOUR_TAVILY_KEY")
 
 provider_chain = ProviderChain([tavily, duckduckgo])
 web_retriever = WebRetriever(provider=provider_chain, top_k=5)
@@ -350,6 +371,8 @@ hybrid_retriever = HybridRetriever(
 docs = hybrid_retriever.retrieve("latest RAG benchmark trends")
 print([(d.id, d.source, d.score) for d in docs])
 ```
+
+By default, `WebRetriever` fails safely and returns empty web results when a provider is unavailable.
 
 ## 10. Logging
 

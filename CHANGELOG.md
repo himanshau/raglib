@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- Added first-class web search integration in `RAG(...)` with new inputs:
+	- `web_search_provider`
+	- `web_search_api_key`
+	- `web_search_base_url`
+	- `web_search_cse_id`
+	- `web_search_provider_kwargs`
+	- `validate_web_search_api_key`
+- Added authenticated web provider key validation with environment variable fallback support
+- Added cloud chat/embedding key validation for explicit provider selection (`openai`, `anthropic`, `groq`, `google`)
+- Updated default web provider to DuckDuckGo for out-of-the-box internet search
+- Integrated `langchain_community` DuckDuckGo tools (`DuckDuckGoSearchRun` with validated output) for default web search
+- Upgraded `WebRetriever` into a plug-and-play provider orchestrator with provider-name factory and automatic DuckDuckGo fallback
+- Updated `WebRetriever` to fail safely by default and return empty results when web provider calls fail
+- Updated README and usage docs with production "3-key" input patterns and provider/key requirements
+
 ## 0.1.7 - 2026-04-05
 
 - Reworked CorrectiveRAG into a faithful three-path CRAG flow: CORRECT, AMBIGUOUS, and INCORRECT routing

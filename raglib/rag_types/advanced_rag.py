@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class AdvancedRAG(BaseRAG):
-    """Runs retrieve, rerank, reduce, deduplicate, and generate."""
+    """Runs retrieve, rerank, deduplicate, reduce, and generate."""
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ class AdvancedRAG(BaseRAG):
         )
 
     def run(self, query: str) -> GenerationResult:
-        """Run retrieve, rerank, context reduction, deduplication, and generation."""
+        """Run retrieve, rerank, deduplication, context reduction, and generation."""
 
         if self.generator is None or self.retriever is None:
             raise ValueError("AdvancedRAG requires retriever and generator")
@@ -51,10 +51,10 @@ class AdvancedRAG(BaseRAG):
 
         if self.reranker is not None:
             documents = self.reranker.rerank(active_query, documents)
-        if self.context_reducer is not None:
-            documents = self.context_reducer.reduce(documents)
         if self.deduplicator is not None:
             documents = self.deduplicator.deduplicate(documents)
+        if self.context_reducer is not None:
+            documents = self.context_reducer.reduce(documents)
 
         documents = self.pre_generate(active_query, documents)
         result = self.generator.generate(

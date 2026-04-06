@@ -1,60 +1,32 @@
 # raglib-py
 
-raglib-py is a production-grade Retrieval-Augmented Generation library for Python.
+raglib-py is a production-focused Retrieval-Augmented Generation library for Python.
 
-This README is designed to be the full user guide for PyPI users, so you do not need to go anywhere else to start.
-
-Important package note:
+Important naming:
 
 - PyPI package name: raglib-py
 - Python import name: raglib
 
 ## Current Support Counts
 
-- Implemented RAG strategies: 12
-- Built-in chat LLM providers: 5
-- Custom chat model support: yes (BaseLLMClient or LangChain-style invoke model)
-
-The 5 built-in chat LLM providers are:
-
-- openai
-- anthropic
-- groq
-- google
-- ollama
-
-## What You Can Do
-
-- Load documents from files, folders, URLs, or raw text
-- Use one clean entry point: RAG(...)
-- Switch between local and cloud LLM providers
-- Choose embedding provider and vector store backend
-- Run 12 RAG strategies out of the box
-- Use interactive terminal chat mode
+- RAG strategies: 12
+- Built-in chat providers: 5
+- Built-in web providers: 9 total
+- Internet web providers: 8
+- Offline local web provider: 1
 
 ## Installation
-
-Install core package:
 
 ```bash
 pip install raglib-py
 ```
 
-This installs the full runtime dependency set used by core chat, embedding, vector DB, and document loader paths.
-
-Optional extras are still available for explicit feature grouping:
+Optional extras:
 
 ```bash
-# Local Ollama chat/embedding support
 pip install "raglib-py[ollama]"
-
-# Chroma vector DB backend
 pip install "raglib-py[chroma]"
-
-# DOCX/PDF/PPTX document loading
-pip install "raglib-py[docx,pdf,pptx]"
-
-# All major runtime extras
+pip install "raglib-py[pdf,docx,pptx]"
 pip install "raglib-py[all]"
 ```
 
@@ -64,7 +36,7 @@ Quick import check:
 python -c "from raglib import RAG; print('OK')"
 ```
 
-## Quickstart (Zero API Keys)
+## Quickstart (Offline)
 
 ```python
 from raglib import RAG
@@ -76,158 +48,112 @@ print(result.answer)
 print([doc.id for doc in result.sources])
 ```
 
-In this mode, raglib uses offline defaults automatically:
+## Recommended Production Input (3 Main Keys)
 
-- chat model: MockLLMClient
-- embeddings: MockEmbedding
-
-## Real Local Stack (Ollama)
-
-If you have local models in Ollama, this is a strong default setup:
+Use this pattern when you want cloud chat + cloud embedding + live web search:
 
 ```python
 from raglib import RAG
 
 rag = RAG(
-	source=r"C:\path\to\your\document.docx",
-	chat_llm="ollama",
-	chat_model="gemma3:4b",
-	embedding_llm="ollama",
-	embedding_model="nomic-embed-text:latest",
-	vector_db="chroma",
-	rag_type="corrective",
-	top_k=5,
+    source="docs/",
+    rag_type="web",  # web/hybrid/routing/corrective can involve web search
+
+    # 1) Chat API key
+    chat_llm="openai",
+    chat_api_key="YOUR_CHAT_API_KEY",
+
+    # 2) Embedding API key
+    embedding_llm="openai",
+    embedding_api_key="YOUR_EMBEDDING_API_KEY",
+
+    # 3) Web search API key (required for authenticated web providers)
+    web_search_provider="tavily",
+    web_search_api_key="YOUR_WEB_SEARCH_API_KEY",
+
+    # Optional: verify provider credentials/connectivity during init
+    validate_web_search_api_key=True,
 )
 
-result = rag.query("What is the core concept of this paper?")
-print(result.answer)
+print(rag.query("latest AI news and key trends").answer)
 ```
 
-## Cloud Chat + Local Embeddings Example
-
-```python
-from raglib import RAG
-
-rag = RAG(
-	source="Service test content.",
-	chat_llm="groq",
-	chat_api_key="YOUR_GROQ_API_KEY",
-	chat_model="qwen/qwen3-32b",
-	embedding_llm="ollama",
-	embedding_model="nomic-embed-text:latest",
-	vector_db="memory",
-	rag_type="naive",
-)
-
-print(rag.query("Reply in one line that service is available.").answer)
-```
-
-## Supported Input Sources
-
-source accepts:
-
-- File path: .txt, .md, .docx, .pptx, .pdf
-- Folder path: recursive load
-- URL: web page text extraction
-- Raw text string
-- List of any mix of the above
-
-You can ingest more data later:
-
-```python
-rag.add("new_notes.md")
-rag.add("https://example.com/post")
-```
-
-## RAG API (Main Constructor)
+## RAG Constructor
 
 ```python
 RAG(
-	source=None,
-	chat_llm=None,
-	embedding_llm=None,
-	vision_llm=None,
-	llm_key=None,
-	chat_api_key=None,
-	embedding_api_key=None,
-	vision_api_key=None,
-	rag_type="corrective",
-	top_k=5,
-	chunk_size=400,
-	chunk_overlap=50,
-	output_dir=None,
-	chat_model=None,
-	chat_base_url=None,
-	embedding_model=None,
-	embedding_base_url=None,
-	vision_model=None,
-	vision_base_url=None,
-	vector_db=None,
-	vector_db_kwargs=None,
+    source=None,
+    chat_llm=None,
+    embedding_llm=None,
+    vision_llm=None,
+    llm_key=None,
+    chat_api_key=None,
+    embedding_api_key=None,
+    vision_api_key=None,
+    rag_type="corrective",
+    top_k=5,
+    chunk_size=400,
+    chunk_overlap=50,
+    output_dir=None,
+    chat_model=None,
+    chat_base_url=None,
+    embedding_model=None,
+    embedding_base_url=None,
+    vision_model=None,
+    vision_base_url=None,
+    web_search_provider="duckduckgo",
+    web_search_api_key=None,
+    web_search_base_url=None,
+    web_search_cse_id=None,
+    web_search_provider_kwargs=None,
+    validate_web_search_api_key=False,
+    vector_db=None,
+    vector_db_kwargs=None,
+    **rag_type_kwargs,
 )
 ```
 
-## API Keys And Endpoints (Important)
+## API Key Rules
 
-raglib never provides API keys. You must use your own provider credentials.
+raglib never provides API keys. Users must provide their own valid keys.
 
-Use these fields in `RAG(...)`:
+Chat keys:
 
-- `chat_api_key`: key for `chat_llm` provider
-- `embedding_api_key`: key for `embedding_llm` provider
-- `vision_api_key`: key for `vision_llm` provider
-- `llm_key`: one shared fallback key when you do not want to pass separate keys
+- chat_llm=openai, anthropic, groq, google -> requires chat_api_key or llm_key (or env var)
+- chat_llm=ollama -> no cloud key required
 
-Endpoint fields:
+Embedding keys:
 
-- `chat_base_url`: custom OpenAI-compatible chat endpoint
-- `embedding_base_url`: custom Ollama embedding endpoint
-- `vision_base_url`: custom OpenAI-compatible vision endpoint
+- embedding_llm=openai, google -> requires embedding_api_key (or llm_key/chat_api_key/env)
+- embedding_llm=ollama, huggingface/local/free, mock -> no cloud key required
 
-Provider key mapping:
+Web keys:
 
-- `chat_llm="openai" | "anthropic" | "groq" | "google"` needs a chat key
-- `embedding_llm="openai" | "google"` needs an embedding key
-- `vision_llm="openai" | "anthropic" | "google"` needs a vision key
-- `ollama`, `mock`, and local `huggingface` modes do not require cloud API keys
+- web_search_provider=duckduckgo -> free, no API key required
+- web_search_provider=local -> offline local search over ingested docs
+- web_search_provider=tavily, serpapi, brave, bing, google_cse, exa, searxng -> requires web_search_api_key
+- web_search_provider=google_cse -> also requires web_search_cse_id
+- web_search_provider=searxng -> may require web_search_base_url
 
-Example with separate keys:
+If web provider fails at runtime, raglib returns empty web results instead of crashing the whole RAG run.
 
-```python
-from raglib import RAG
+If you do not set web_search_provider, raglib defaults to duckduckgo.
 
-rag = RAG(
-	source="docs/",
-	chat_llm="openai",
-	chat_api_key="YOUR_OPENAI_CHAT_KEY",
-	embedding_llm="google",
-	embedding_api_key="YOUR_GOOGLE_KEY",
-	vision_llm="anthropic",
-	vision_api_key="YOUR_ANTHROPIC_KEY",
-)
-```
+## Web Providers
 
-Example with one shared key:
+Supported web_search_provider values:
 
-```python
-rag = RAG(
-	source="docs/",
-	chat_llm="openai",
-	embedding_llm="openai",
-	vision_llm="openai",
-	llm_key="YOUR_OPENAI_KEY",
-)
-```
+1. local
+2. duckduckgo
+3. tavily
+4. serpapi
+5. brave
+6. bing
+7. google_cse
+8. exa
+9. searxng
 
-Key methods:
-
-- query(question): ask one question and get GenerationResult
-- add(source): add more documents to existing index
-- chat(): start terminal interactive Q/A session
-
-## How Many RAG Strategies Are Included?
-
-raglib currently provides 12 built-in RAG strategies:
+## Built-in RAG Strategies
 
 1. naive
 2. advanced
@@ -242,108 +168,59 @@ raglib currently provides 12 built-in RAG strategies:
 11. web
 12. tool
 
-Use them by setting rag_type:
+## Common Examples
 
-```python
-rag = RAG(source="docs/", rag_type="multi_hop")
-```
-
-When to use what:
-
-- naive: fastest baseline
-- advanced: better quality via rerank/reduce/dedup
-- corrective: retries when context quality is weak
-- self: decision + reflection-driven behavior
-- agentic: planner-based sub-query execution
-- hybrid: local + web retrieval blending
-- multi_query: query variant expansion
-- multi_hop: multi-step reasoning retrieval
-- routing: automatic retrieval route selection
-- memory: conversation-memory-aware answering
-- web: web-first retrieval
-- tool: retrieval plus tool output injection
-
-## Provider Support
-
-Chat providers (5 built-in + custom adapter support):
-
-- openai
-- anthropic
-- groq
-- google
-- ollama
-- custom BaseLLMClient or LangChain-style invoke() model
-
-Embedding providers:
-
-- openai
-- google
-- ollama
-- huggingface (aliases: free, local)
-- mock
-
-Vision providers (for scanned PDF fallback):
-
-- openai
-- anthropic
-- google
-- mock
-
-Vector backends:
-
-- chroma (default selection)
-- memory
-- custom BaseVectorStore instance
-
-## Interactive Terminal Chat
+Use a free web provider:
 
 ```python
 from raglib import RAG
 
-rag = RAG("my_docs/")
-rag.chat()
+rag = RAG(
+    source="docs/",
+    rag_type="web",
+    chat_llm="openai",
+    chat_api_key="YOUR_CHAT_API_KEY",
+    embedding_llm="openai",
+    embedding_api_key="YOUR_EMBEDDING_API_KEY",
+    web_search_provider="duckduckgo",
+)
 ```
 
-Commands inside session:
-
-- help
-- history
-- clear
-- exit / quit / q
-
-## Output Saving
-
-Set output_dir to save each query result as JSON:
+Use Google CSE:
 
 ```python
-rag = RAG(source="docs/", output_dir="outputs")
-rag.query("Summarize this")
+from raglib import RAG
+
+rag = RAG(
+    source="docs/",
+    rag_type="hybrid",
+    chat_llm="openai",
+    chat_api_key="YOUR_CHAT_API_KEY",
+    embedding_llm="openai",
+    embedding_api_key="YOUR_EMBEDDING_API_KEY",
+    web_search_provider="google_cse",
+    web_search_api_key="YOUR_GOOGLE_API_KEY",
+    web_search_cse_id="YOUR_CSE_ID",
+)
 ```
 
-## Troubleshooting
+Use local-only web mode (offline):
 
-Import confusion:
+```python
+from raglib import RAG
 
-- Install: pip install raglib-py
-- Import: from raglib import RAG
+rag = RAG(
+    source="docs/",
+    rag_type="web",
+    web_search_provider="local",
+)
+```
 
-Chroma issues:
+## Useful Methods
 
-- If Chroma is unavailable or unstable, use vector_db="memory"
-
-Missing provider package:
-
-- Install needed extra (for example: pip install "raglib-py[groq]")
-
-## Complete Local Test Script
-
-A ready user script is included at:
-
-- examples/local_ollama_chroma_test.py
-
-An all-strategy comparison script is included at:
-
-- examples/check_all_rag_types.py
+- query(question)
+- add(source)
+- chat()
 
 ## License
 

@@ -37,6 +37,9 @@ from raglib.constants import (
     SUPPORTED_EMBEDDING_PROVIDERS,
     SUPPORTED_VECTOR_DBS,
     SUPPORTED_VISION_PROVIDERS,
+    SUPPORTED_WEB_PROVIDERS,
+    WEB_PROVIDERS_REQUIRING_API_KEY,
+    WEB_SEARCH_RAG_TYPES,
 )
 from raglib.embedding.base_embedding import BaseEmbedding
 from raglib.embedding.embedding_factory import EmbeddingFactory
@@ -44,6 +47,16 @@ from raglib.llm.base_client import BaseLLMClient
 from raglib.llm.provider_detector import LLMProviderDetector
 from raglib.loaders.chunk_splitter import ChunkSplitter
 from raglib.loaders.document_loader import DocumentLoader, SourceInput
+from raglib.providers import (
+    BingProvider,
+    BraveProvider,
+    DuckDuckGoProvider,
+    ExaProvider,
+    GoogleCSEProvider,
+    SearxNGProvider,
+    SerpAPIProvider,
+    TavilyProvider,
+)
 from raglib.providers.base_provider import BaseSearchProvider
 from raglib.schemas import Document, GenerationResult
 from raglib.vectorstores.base_store import BaseVectorStore
@@ -73,6 +86,35 @@ RAG_TYPE_ALIASES: Dict[str, str] = {
     "tool_augmented": "tool",
     "tool-augmented": "tool",
     "toolaugmented": "tool",
+}
+
+WEB_PROVIDER_ALIASES: Dict[str, str] = {
+    "local_web": "local",
+    "ddg": "duckduckgo",
+    "duckduckgo_search": "duckduckgo",
+    "google": "google_cse",
+}
+
+CHAT_PROVIDER_ENV_KEYS: Dict[str, Sequence[str]] = {
+    "openai": ("OPENAI_API_KEY",),
+    "anthropic": ("ANTHROPIC_API_KEY",),
+    "groq": ("GROQ_API_KEY",),
+    "google": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
+}
+
+EMBEDDING_PROVIDER_ENV_KEYS: Dict[str, Sequence[str]] = {
+    "openai": ("OPENAI_API_KEY",),
+    "google": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
+}
+
+WEB_PROVIDER_ENV_KEYS: Dict[str, Sequence[str]] = {
+    "tavily": ("TAVILY_API_KEY",),
+    "serpapi": ("SERPAPI_API_KEY",),
+    "brave": ("BRAVE_SEARCH_API_KEY", "BRAVE_API_KEY"),
+    "bing": ("BING_SEARCH_API_KEY", "BING_SEARCH_V7_SUBSCRIPTION_KEY"),
+    "google_cse": ("GOOGLE_API_KEY",),
+    "exa": ("EXA_API_KEY",),
+    "searxng": ("SEARXNG_API_KEY",),
 }
 
 
@@ -160,6 +202,12 @@ class RAG:
         embedding_base_url: Optional[str] = None,
         vision_model: Optional[str] = None,
         vision_base_url: Optional[str] = None,
+        web_search_provider: str = "duckduckgo",
+        web_search_api_key: Optional[str] = None,
+        web_search_base_url: Optional[str] = None,
+        web_search_cse_id: Optional[str] = None,
+        web_search_provider_kwargs: Optional[Dict[str, Any]] = None,
+        validate_web_search_api_key: bool = False,
         vector_db: Optional[Union[str, BaseVectorStore]] = None,
         vector_db_kwargs: Optional[Dict[str, Any]] = None,
         **rag_type_kwargs: Any,
@@ -175,6 +223,14 @@ class RAG:
         explicit_chat_key = chat_api_key
         shared_key = llm_key
         effective_chat_key = explicit_chat_key if explicit_chat_key is not None else shared_key
+
+        if isinstance(chat_llm, str):
+            normalized_chat_llm = chat_llm.strip().lower()
+            if normalized_chat_llm in SUPPORTED_CHAT_PROVIDERS:
+                self._validate_chat_provider_api_key(
+                    provider=normalized_chat_llm,
+                    explicit_api_key=effective_chat_key,
+                )
 
         chat_input: Optional[Union[str, BaseLLMClient]] = chat_llm if chat_llm is not None else effective_chat_key
         chat_provider_hint: Optional[str] = None
@@ -236,8 +292,29 @@ class RAG:
         )
         self.retriever = self._retriever
 
-        self._web_provider = _LocalSearchProvider(documents=self._documents)
-        self._web_retriever = WebRetriever(provider=self._web_provider, top_k=top_k)
+        normalized_web_provider = self._normalize_web_provider_name(web_search_provider)
+        self._web_provider = self._resolve_web_provider(
+            provider_name=normalized_web_provider,
+            web_search_api_key=web_search_api_key,
+            web_search_base_url=web_search_base_url,
+            web_search_cse_id=web_search_cse_id,
+            web_search_provider_kwargs=web_search_provider_kwargs,
+        )
+        if validate_web_search_api_key and normalized_web_provider != "local":
+            self._validate_web_provider_connection(self._web_provider)
+
+        if self._rag_type in WEB_SEARCH_RAG_TYPES and normalized_web_provider == "local":
+            logger.warning(
+                "RAG type '%s' can use web retrieval but web_search_provider='local' is offline. "
+                "Set web_search_provider to an internet provider to query live web.",
+                self._rag_type,
+            )
+
+        self._web_retriever = WebRetriever(
+            provider=self._web_provider,
+            top_k=top_k,
+            fail_silently=True,
+        )
         self._hybrid_retriever = HybridRetriever(
             vector_retriever=self._retriever,
             web_retriever=self._web_retriever,
@@ -264,12 +341,13 @@ class RAG:
 
         self._rag = self._build_orchestrator(rag_type=self._rag_type, kwargs=rag_type_kwargs)
         logger.info(
-            "RAG initialized (rag_type=%s docs=%d llm=%s embedding=%s vision=%s)",
+            "RAG initialized (rag_type=%s docs=%d llm=%s embedding=%s vision=%s web_provider=%s)",
             self._rag_type,
             len(self._documents),
             type(self._llm).__name__,
             type(self._embedding).__name__,
             type(self._vision).__name__,
+            self._web_provider.name,
         )
 
     def query(self, question: str) -> GenerationResult:
@@ -301,7 +379,8 @@ class RAG:
 
         self._documents.extend(new_chunks)
         self._retriever.add_documents(new_chunks)
-        self._web_provider.update_documents(self._documents)
+        if isinstance(self._web_provider, _LocalSearchProvider):
+            self._web_provider.update_documents(self._documents)
         logger.info("Added %d chunks. Total corpus size=%d", len(new_chunks), len(self._documents))
 
     def _resolve_embedding(
@@ -332,7 +411,17 @@ class RAG:
 
         api_key = None
         if provider in {"openai", "google"}:
-            api_key = embedding_api_key or llm_key or chat_api_key
+            api_key = self._first_non_empty(
+                embedding_api_key,
+                llm_key,
+                chat_api_key,
+                self._resolve_env_value(EMBEDDING_PROVIDER_ENV_KEYS.get(provider, ())),
+            )
+            if not api_key:
+                raise ValueError(
+                    f"Embedding provider '{provider}' requires embedding_api_key (or llm_key/chat_api_key) "
+                    f"or a configured environment variable: {list(EMBEDDING_PROVIDER_ENV_KEYS.get(provider, ()))}"
+                )
 
         embedding = EmbeddingFactory.build(
             provider=provider,
@@ -380,6 +469,188 @@ class RAG:
         )
         logger.info("Vision model resolved provider=%s", provider)
         return vision_client
+
+    def _validate_chat_provider_api_key(
+        self,
+        provider: str,
+        explicit_api_key: Optional[str],
+    ) -> None:
+        """Require API keys for cloud chat providers unless env vars are configured."""
+
+        if provider not in {"openai", "anthropic", "groq", "google"}:
+            return
+
+        env_key = self._resolve_env_value(CHAT_PROVIDER_ENV_KEYS.get(provider, ()))
+        if explicit_api_key or env_key:
+            return
+
+        raise ValueError(
+            f"chat_llm='{provider}' requires chat_api_key (or llm_key) "
+            f"or one of environment variables: {list(CHAT_PROVIDER_ENV_KEYS.get(provider, ()))}"
+        )
+
+    def _normalize_web_provider_name(self, provider_name: str) -> str:
+        """Normalize web provider aliases to canonical provider names."""
+
+        normalized = (provider_name or "duckduckgo").strip().lower()
+        normalized = WEB_PROVIDER_ALIASES.get(normalized, normalized)
+        if normalized not in SUPPORTED_WEB_PROVIDERS:
+            raise ValueError(
+                f"Unknown web_search_provider '{provider_name}'. "
+                f"Supported: {sorted(SUPPORTED_WEB_PROVIDERS)}"
+            )
+        return normalized
+
+    def _resolve_web_provider(
+        self,
+        provider_name: str,
+        web_search_api_key: Optional[str],
+        web_search_base_url: Optional[str],
+        web_search_cse_id: Optional[str],
+        web_search_provider_kwargs: Optional[Dict[str, Any]],
+    ) -> BaseSearchProvider:
+        """Build a web search provider from constructor inputs."""
+
+        kwargs = dict(web_search_provider_kwargs or {})
+
+        if provider_name == "local":
+            if kwargs:
+                raise ValueError(
+                    "web_search_provider='local' does not accept web_search_provider_kwargs"
+                )
+            return _LocalSearchProvider(documents=self._documents)
+
+        resolved_api_key = self._first_non_empty(
+            web_search_api_key,
+            self._resolve_env_value(WEB_PROVIDER_ENV_KEYS.get(provider_name, ())),
+        )
+
+        if provider_name in WEB_PROVIDERS_REQUIRING_API_KEY and not resolved_api_key:
+            raise ValueError(
+                f"web_search_provider='{provider_name}' requires web_search_api_key "
+                f"or one of environment variables: {list(WEB_PROVIDER_ENV_KEYS.get(provider_name, ()))}"
+            )
+
+        if provider_name == "duckduckgo":
+            provider = DuckDuckGoProvider(
+                region=str(kwargs.pop("region", "wt-wt")),
+                safesearch=str(kwargs.pop("safesearch", "moderate")),
+                timelimit=kwargs.pop("timelimit", None),
+                backend=str(kwargs.pop("backend", "auto")),
+            )
+        elif provider_name == "tavily":
+            provider = TavilyProvider(
+                api_key=resolved_api_key,
+                topic=str(kwargs.pop("topic", "general")),
+                search_depth=str(kwargs.pop("search_depth", "basic")),
+                include_answer=bool(kwargs.pop("include_answer", False)),
+                timeout=int(kwargs.pop("timeout", 10)),
+            )
+        elif provider_name == "serpapi":
+            provider = SerpAPIProvider(
+                api_key=resolved_api_key,
+                engine=str(kwargs.pop("engine", "google")),
+                location=str(kwargs.pop("location", "United States")),
+                timeout=int(kwargs.pop("timeout", 10)),
+            )
+        elif provider_name == "brave":
+            provider = BraveProvider(
+                api_key=resolved_api_key,
+                country=str(kwargs.pop("country", "us")),
+                search_lang=str(kwargs.pop("search_lang", "en")),
+                timeout=int(kwargs.pop("timeout", 10)),
+            )
+        elif provider_name == "bing":
+            provider = BingProvider(
+                api_key=resolved_api_key,
+                market=str(kwargs.pop("market", "en-US")),
+                timeout=int(kwargs.pop("timeout", 10)),
+            )
+        elif provider_name == "google_cse":
+            cse_id = self._first_non_empty(
+                web_search_cse_id,
+                kwargs.pop("cse_id", None),
+                self._resolve_env_value(("GOOGLE_CSE_ID", "GOOGLE_CSE_ENGINE_ID")),
+            )
+            if not cse_id:
+                raise ValueError(
+                    "web_search_provider='google_cse' requires web_search_cse_id "
+                    "or environment variable GOOGLE_CSE_ID"
+                )
+            provider = GoogleCSEProvider(
+                api_key=resolved_api_key,
+                cse_id=cse_id,
+                safe=str(kwargs.pop("safe", "off")),
+                timeout=int(kwargs.pop("timeout", 10)),
+            )
+        elif provider_name == "exa":
+            provider = ExaProvider(
+                api_key=resolved_api_key,
+                use_autoprompt=bool(kwargs.pop("use_autoprompt", True)),
+                timeout=int(kwargs.pop("timeout", 10)),
+            )
+        elif provider_name == "searxng":
+            base_url = self._first_non_empty(
+                web_search_base_url,
+                kwargs.pop("base_url", None),
+                os.getenv("SEARXNG_BASE_URL"),
+            )
+            if not base_url:
+                raise ValueError(
+                    "web_search_provider='searxng' requires web_search_base_url "
+                    "or environment variable SEARXNG_BASE_URL"
+                )
+            provider = SearxNGProvider(
+                api_key=resolved_api_key,
+                base_url=base_url,
+                categories=str(kwargs.pop("categories", "general")),
+                language=str(kwargs.pop("language", "en")),
+                timeout=int(kwargs.pop("timeout", 10)),
+            )
+        else:
+            raise ValueError(
+                f"Unsupported web_search_provider '{provider_name}'. "
+                f"Supported: {sorted(SUPPORTED_WEB_PROVIDERS)}"
+            )
+
+        if kwargs:
+            unknown = ", ".join(sorted(kwargs.keys()))
+            raise ValueError(
+                f"Unknown web_search_provider_kwargs for provider '{provider_name}': {unknown}"
+            )
+
+        logger.info("Web provider resolved provider=%s", provider.name)
+        return provider
+
+    def _validate_web_provider_connection(self, provider: BaseSearchProvider) -> None:
+        """Perform a lightweight web provider credential check."""
+
+        try:
+            provider.search(query="raglib api key validation", num_results=1)
+        except Exception as exc:  # noqa: BLE001
+            raise ValueError(
+                f"web_search_provider='{provider.name}' failed validation. "
+                "Check internet access and web_search_api_key."
+            ) from exc
+
+    @staticmethod
+    def _resolve_env_value(keys: Sequence[str]) -> Optional[str]:
+        """Return the first non-empty environment variable value from keys."""
+
+        for key in keys:
+            value = os.getenv(key)
+            if value and value.strip():
+                return value.strip()
+        return None
+
+    @staticmethod
+    def _first_non_empty(*values: Optional[str]) -> Optional[str]:
+        """Return the first non-empty string from the given values."""
+
+        for value in values:
+            if value and str(value).strip():
+                return str(value).strip()
+        return None
 
     def _ingest(self, source: SourceInput, return_only: bool = False) -> List[Document]:
         """Load and chunk source inputs into retrievable documents."""
