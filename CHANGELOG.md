@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.9 - 2026-04-06
+
+- Clarified chat continuity behavior in README for PyPI users (default stateless turn handling vs memory-enabled multi-turn context)
+- Added two explicit usage snippets: one-time/stateless query mode and continuous/contextual memory mode
+- Updated usage guide with matching chat continuity section and corrected section numbering
+
 ## 0.1.8 - 2026-04-06
 
 - Added first-class web search integration in `RAG(...)` with new inputs:

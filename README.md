@@ -229,6 +229,60 @@ rag = RAG(
 - add(source)
 - chat()
 
+## Chat Continuity And Context
+
+How chat works today:
+
+- You create one RAG instance and can ask many questions without re-running setup code.
+- By default (`rag_type="corrective"`), each query is processed independently for retrieval/generation quality.
+- If you need conversational memory across turns, use `rag_type="memory"`.
+- Memory is in-process; if your script exits, memory resets.
+
+One-time / stateless style (default):
+
+```python
+from raglib import RAG
+
+rag = RAG(
+    source="docs/",
+    rag_type="corrective",  # default behavior
+)
+
+answer_1 = rag.query("What is RAG?")
+answer_2 = rag.query("Give me key benefits in 3 points")
+
+print(answer_1.answer)
+print(answer_2.answer)
+```
+
+Continuous chat with context (memory-enabled):
+
+```python
+from raglib import RAG
+
+rag = RAG(
+    source="docs/",
+    rag_type="memory",  # keeps previous turns in the same running instance
+)
+
+turn_1 = rag.query("Summarize the architecture")
+turn_2 = rag.query("Now explain that in simpler terms")
+
+print(turn_1.answer)
+print(turn_2.answer)
+
+# Optional interactive terminal chat loop (single run, continuous session)
+rag.chat()
+```
+
+Interactive session kill-switch commands:
+
+- exit
+- quit
+- q
+- bye
+- stop
+
 ## License
 
 MIT

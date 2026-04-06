@@ -389,7 +389,45 @@ logging.basicConfig(
 
 Set to `DEBUG` when diagnosing retrieval ranking, routing decisions, retries, and provider fallback behavior.
 
-## 11. Running the Built-in Demo
+## 11. Chat Continuity (One-time vs Continuous)
+
+- One RAG instance can answer multiple questions without re-initialization.
+- Default strategies like `corrective` do not inject prior Q/A memory between turns.
+- Use `rag_type="memory"` when you want conversational context across turns.
+- Memory is kept in-process (it resets when the process stops).
+
+One-time / stateless query style:
+
+```python
+from raglib import RAG
+
+rag = RAG(source="docs/", rag_type="corrective")
+print(rag.query("What is this document about?").answer)
+print(rag.query("List 3 key points").answer)
+```
+
+Continuous contextual style:
+
+```python
+from raglib import RAG
+
+rag = RAG(source="docs/", rag_type="memory")
+print(rag.query("Summarize chapter 1").answer)
+print(rag.query("Now explain that in simple language").answer)
+
+# Optional interactive session
+rag.chat()
+```
+
+Interactive kill-switch commands:
+
+- exit
+- quit
+- q
+- bye
+- stop
+
+## 12. Running the Built-in Demo
 
 A full runnable demonstration lives in `raglib/main.py`.
 
@@ -405,7 +443,7 @@ The demo shows:
 - memory turns
 - provider swap and provider chain fallback
 
-## 12. Import Patterns
+## 13. Import Patterns
 
 Direct import from package root:
 
@@ -419,7 +457,7 @@ Or explicit import from module path:
 from raglib.rag_types.naive_rag import NaiveRAG
 ```
 
-## 13. Error Handling Patterns
+## 14. Error Handling Patterns
 
 ### Provider errors
 
@@ -443,7 +481,7 @@ result = generator.generate(query="Explain RAG", documents=[])
 print(result.answer)
 ```
 
-## 14. Production Tips
+## 15. Production Tips
 
 - Keep document chunks focused and metadata-rich.
 - Use `Reranker` and `Evaluator` together for better precision.
@@ -453,7 +491,7 @@ print(result.answer)
 - Keep provider keys out of source code (environment variables or secrets manager).
 - Track reasoning traces for observability and debugging.
 
-## 15. Minimal End-to-End Template
+## 16. Minimal End-to-End Template
 
 ```python
 from raglib import Document, Retriever, Generator, MockLLMClient, NaiveRAG

@@ -18,7 +18,7 @@ class InteractiveSession:
         "+------------------------------------------------------+\n"
         "|              raglib interactive session             |\n"
         "|  Type your question and press Enter.                |\n"
-        "|  Commands: help | history | clear | exit            |\n"
+        "|  Commands: help | history | clear | exit | bye      |\n"
         "+------------------------------------------------------+"
     )
 
@@ -27,7 +27,7 @@ class InteractiveSession:
         "  help      - show this message\n"
         "  history   - show all questions asked in this session\n"
         "  clear     - clear the terminal screen\n"
-        "  exit / quit / q - end the session\n"
+        "  exit / quit / q / bye / stop - end the session\n"
     )
 
     def __init__(self, rag: "RAG"):
@@ -57,7 +57,7 @@ class InteractiveSession:
                 continue
 
             normalized = raw.lower()
-            if normalized in {"exit", "quit", "q"}:
+            if normalized in {"exit", "quit", "q", "bye", "stop"}:
                 print("Session ended.")
                 break
             if normalized == "help":
